@@ -5,7 +5,8 @@ st.set_page_config(page_title="Sentiment & NER Analyzer", page_icon="🌱", layo
 
 import spacy
 from spacy.cli import download
-from openai import OpenAI
+import requests
+import json
 
 # Load or download SpaCy NER model
 @st.cache_resource
@@ -17,6 +18,8 @@ def load_nlp_model():
         return spacy.load("en_core_web_sm")
 
 nlp = load_nlp_model()
+
+# Apply custom styling
 st.markdown(
     """
     <style>
@@ -54,24 +57,33 @@ else:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Function to analyze sentiment
+# Function to analyze sentiment using direct API call
 def analyze_sentiment_with_words(review, category):
     if not st.session_state.openai_api_key:
         return "Please enter an OpenAI API key to use sentiment analysis."
     
-    client = OpenAI(api_key=st.session_state.openai_api_key)
+    # Using direct API call instead of the client library to avoid dependency issues
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {st.session_state.openai_api_key}"
+    }
     
-    prompt = f"Analyze the sentiment of the following {category} review and provide sentiment contributions for each word (percentage):\n\nReview: {review}"
+    payload = {
+        "model": "gpt-3.5-turbo",
+        "messages": [
+            {"role": "system", "content": "You are a sentiment analysis assistant."},
+            {"role": "user", "content": f"Analyze the sentiment of the following {category} review and provide sentiment contributions for each word (percentage):\n\nReview: {review}"}
+        ]
+    }
     
     try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a sentiment analysis assistant."},
-                {"role": "user", "content": prompt}
-            ]
-        )
-        return response.choices[0].message.content.strip()
+        response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+        response_data = response.json()
+        
+        if 'error' in response_data:
+            return f"API Error: {response_data['error']['message']}"
+        
+        return response_data['choices'][0]['message']['content'].strip()
     except Exception as e:
         return f"Error: {str(e)}"
 
