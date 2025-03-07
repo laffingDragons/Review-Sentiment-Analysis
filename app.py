@@ -1,4 +1,8 @@
 import streamlit as st
+
+# Customizing Streamlit UI - MUST BE FIRST!
+st.set_page_config(page_title="Sentiment & NER Analyzer", page_icon="🌱", layout="centered")
+
 import spacy
 from spacy.cli import download
 from openai import OpenAI
@@ -13,9 +17,6 @@ def load_nlp_model():
         return spacy.load("en_core_web_sm")
 
 nlp = load_nlp_model()
-
-# Customizing Streamlit UI
-st.set_page_config(page_title="Sentiment & NER Analyzer", page_icon="🌱", layout="centered")
 st.markdown(
     """
     <style>
